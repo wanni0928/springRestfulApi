@@ -2,7 +2,9 @@ package com.wannistudio.restapi.events;
 
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -38,9 +40,15 @@ public class EventController {
         }
 
         Event event = modelMapper.map(eventDto, Event.class);
-
+        event.update();
         Event newEvent = this.eventRepository.save(event);
-        URI uri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
-        return ResponseEntity.created(uri).body(event);
+        WebMvcLinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
+        URI uri = selfLinkBuilder.toUri();
+        EntityModel<Event> eventResource = EntityModel.of(event);
+        eventResource.add(linkTo(EventController.class).withRel("query-events"));
+        eventResource.add(selfLinkBuilder.withSelfRel());
+        eventResource.add(selfLinkBuilder.withRel("update-events"));
+
+        return ResponseEntity.created(uri).body(eventResource);
     }
 }
